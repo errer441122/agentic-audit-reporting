@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Compliance Report — Intesa Sanpaolo</title>
+<style>
+  :root {
+    --bg: #fafaf7; --ink: #1a1a1a; --ink-dim: #555;
+    --rule: #d8d4cb; --panel: #ffffff;
+    --good: #4f7d4f; --medium: #b07a35; --poor: #a44a4a;
+    --accent: #2d3e50;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0; background: var(--bg);
+         color: var(--ink); font-family: Georgia, "Times New Roman", serif;
+         font-size: 14px; line-height: 1.6; }
+  .container { max-width: 880px; margin: 0 auto; padding: 48px 32px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .subtitle { color: var(--ink-dim); font-size: 13px;
+               margin-bottom: 32px; }
+  .meta-grid { display: grid; grid-template-columns: max-content 1fr;
+                gap: 4px 24px; padding: 16px 20px;
+                background: var(--panel); border: 1px solid var(--rule);
+                margin-bottom: 32px; font-size: 13px; }
+  .meta-grid dt { color: var(--ink-dim); font-family: ui-monospace,
+                   monospace; font-size: 12px; }
+  .meta-grid dd { margin: 0; }
+  h2 { font-size: 17px; margin: 36px 0 4px;
+        border-bottom: 1px solid var(--rule); padding-bottom: 6px; }
+  h2 .article { font-family: ui-monospace, monospace; font-size: 12px;
+                 color: var(--ink-dim); font-weight: normal;
+                 margin-right: 12px; }
+  .lede { color: var(--ink-dim); font-style: italic; margin: 8px 0 16px;
+           font-size: 13px; }
+  .score-row { display: flex; gap: 12px; flex-wrap: wrap;
+                margin: 16px 0; }
+  .score { flex: 1 1 200px; background: var(--panel);
+            border: 1px solid var(--rule); padding: 14px 16px; }
+  .score .label { font-family: ui-monospace, monospace; font-size: 11px;
+                   color: var(--ink-dim); text-transform: uppercase;
+                   letter-spacing: 0.08em; }
+  .score .value { font-size: 24px; font-weight: 600; margin-top: 4px;
+                   color: var(--accent); }
+  .score .value.score-good { color: var(--good); }
+  .score .value.score-medium { color: var(--medium); }
+  .score .value.score-poor { color: var(--poor); }
+  .score .detail { font-size: 12px; color: var(--ink-dim);
+                    margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px;
+           font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px;
+            border-bottom: 1px solid var(--rule); }
+  th { font-family: ui-monospace, monospace; font-size: 11px;
+        color: var(--ink-dim); text-transform: uppercase;
+        letter-spacing: 0.08em; font-weight: 600; }
+  code { font-family: ui-monospace, monospace; font-size: 12px;
+          background: rgba(0,0,0,0.04); padding: 1px 4px;
+          border-radius: 2px; }
+  ul { margin: 8px 0 16px 20px; padding: 0; }
+  li { margin-bottom: 4px; }
+  .footer { margin-top: 48px; padding-top: 16px;
+             border-top: 1px solid var(--rule);
+             font-size: 12px; color: var(--ink-dim);
+             font-style: italic; }
+  .disclaimer { background: #fff8e6; border: 1px solid #d8c489;
+                 padding: 12px 16px; font-size: 12px;
+                 color: #4a3a14; margin: 24px 0; }
+</style></head>
+<body>
+<div class="container">
+
+<h1>Compliance Report</h1>
+<div class="subtitle">
+  Regulated agentic ABM run · generated 2026-05-16T21:25:34.993889+00:00
+</div>
+
+<dl class="meta-grid">
+  <dt>RUN ID</dt><dd><code>a5042cea-6c6b-408d-afdd-a399a385914b</code></dd>
+  <dt>TARGET</dt><dd>Intesa Sanpaolo</dd>
+  <dt>STARTED</dt><dd><code>2026-05-16T10:00:00+00:00</code></dd>
+  <dt>FINAL PHASE</dt><dd><code>approved</code></dd>
+</dl>
+
+<div class="disclaimer">
+  This document is a structural summary of the run's audit trail.
+  It is not a legal opinion and does not certify compliance with
+  any specific regulation. It is intended to support, not replace,
+  review by a qualified compliance professional.
+</div>
+
+<h2><span class="article">Art. 12</span>Record-keeping</h2>
+<div class="lede">
+  EU AI Act Article 12 requires that high-risk AI systems maintain
+  automatic logs of operations enabling traceability and post-market
+  monitoring. This section reports on the run's logging completeness
+  and tamper-evidence.
+</div>
+<div class="score-row">
+  <div class="score">
+    <div class="label">State snapshots</div>
+    <div class="value">3</div>
+    <div class="detail">point-in-time state captures</div>
+  </div>
+  <div class="score">
+    <div class="label">Approval records</div>
+    <div class="value">3</div>
+    <div class="detail">human decisions recorded</div>
+  </div>
+  <div class="score">
+    <div class="label">Notification attempts</div>
+    <div class="value">2</div>
+    <div class="detail">Slack / email / null fan-out</div>
+  </div>
+  <div class="score">
+    <div class="label">Hash chain</div>
+    <div class="value score-medium">Chain not present</div>
+    <div class="detail">This run was written without hash-chain metadata. Tamper-evidence is not available for this run; enable chained writes to obtain it.</div>
+  </div>
+</div>
+
+<h2><span class="article">Art. 13</span>Transparency &amp; provenance</h2>
+<div class="lede">
+  EU AI Act Article 13 requires that high-risk AI systems be designed
+  and developed in a way that ensures their operation is sufficiently
+  transparent. For an outreach pipeline, this translates into
+  per-output provenance: every generated assertion must be traceable
+  to a verifiable source.
+</div>
+<div class="score-row">
+  <div class="score">
+    <div class="label">Citation coverage</div>
+    <div class="value score-good">
+      100.0%
+    </div>
+    <div class="detail">
+      7/7 claims
+      reference at least one citation
+    </div>
+  </div>
+  <div class="score">
+    <div class="label">Dossier coverage</div>
+    <div class="value score-good">
+      100.0%
+    </div>
+    <div class="detail">
+      4/4
+      dossiers carry backing claim IDs
+    </div>
+  </div>
+  <div class="score">
+    <div class="label">Draft coverage</div>
+    <div class="value score-good">
+      100.0%
+    </div>
+    <div class="detail">
+      4/4
+      drafts carry backing claim IDs
+    </div>
+  </div>
+  <div class="score">
+    <div class="label">Source citations</div>
+    <div class="value">3</div>
+    <div class="detail">primary sources consulted</div>
+  </div>
+</div>
+
+<h2><span class="article">Art. 14</span>Human oversight</h2>
+<div class="lede">
+  EU AI Act Article 14 requires that high-risk AI systems be designed
+  and developed in such a way that they can be effectively overseen
+  by natural persons. For outreach automation, this means that no
+  communication leaves the system without an identifiable human
+  decision.
+</div>
+<div class="score-row">
+  <div class="score">
+    <div class="label">HITL coverage</div>
+    <div class="value score-good">
+      100.0%
+    </div>
+    <div class="detail">
+      4/4 drafts decided
+      by an identified reviewer
+    </div>
+  </div>
+  <div class="score">
+    <div class="label">Reviewers</div>
+    <div class="value">1</div>
+    <div class="detail">distinct identities recorded</div>
+  </div>
+  <div class="score">
+    <div class="label">Decisions logged</div>
+    <div class="value">3</div>
+    <div class="detail">across all artifact references</div>
+  </div>
+  <div class="score">
+    <div class="label">Time to approval</div>
+    <div class="value">42.0 s</div>
+    <div class="detail">first request to last decision</div>
+  </div>
+</div>
+
+<h3 style="font-size:13px;margin-top:24px;font-family:ui-monospace,monospace;
+           text-transform:uppercase;letter-spacing:0.08em;
+           color:var(--ink-dim);">Decision distribution</h3>
+<ul><li><strong>approved</strong>: 3</li></ul>
+
+<h3 style="font-size:13px;margin-top:16px;font-family:ui-monospace,monospace;
+           text-transform:uppercase;letter-spacing:0.08em;
+           color:var(--ink-dim);">Identified reviewers</h3>
+<ul><li><code>alice@firm.eu</code></li></ul>
+
+<div class="footer">
+  Generated from <code>a5042cea-6c6b-408d-afdd-a399a385914b.jsonl</code>.
+  All metrics derive from the run's audit trail. The underlying
+  JSONL is the canonical record; this HTML is a rendered view.
+</div>
+
+</div></body></html>
