@@ -250,11 +250,9 @@ def compute_metrics(jsonl_path: Path) -> RunMetrics:
     else:
         ttap = None
 
-    # Chain status. We attempt verification but tolerate the
-    # current store_dir format which does NOT yet embed hash
-    # chains — in that case the chain verifier will report a
-    # failure (no prev_hash fields). The report renders that
-    # state as "chain not present" rather than panicking.
+    # Chain status. The archive-local run_store writes chained JSONL.
+    # We still tolerate legacy/plain JSONL and render that state as
+    # "chain not present" rather than panicking.
     chain_status = verify_chain(jsonl_path)
 
     target = latest_state.get("target_account", {})
@@ -305,7 +303,7 @@ def _chain_summary(status: VerificationResult) -> tuple[str, str, str]:
 
     Three honest outcomes:
     - chain_present=False: the run JSONL was written without
-      hash-chain metadata (the current run_store behaviour). We do
+      hash-chain metadata (legacy/plain JSONL). We do
       NOT call this "verified" (there is nothing to verify) and we
       do NOT call it "broken" (nothing was tampered). We say
       "chain not present" so the report neither over- nor

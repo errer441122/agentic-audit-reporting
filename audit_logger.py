@@ -15,11 +15,12 @@ the middle of a 200-line audit. A hash chain makes such a
 modification *detectable* — verify_chain() recomputes each link and
 reports the first divergence in milliseconds.
 
-Note on scope: a run JSONL written by run_store today carries no
-chain metadata. That is not tampering — it is the absence of a
-chain. verify_chain() distinguishes the two: it returns
-chain_present=False (not valid=False) so callers can render
-"chain not present" honestly instead of falsely crying "broken".
+Note on scope: run_store writes chained JSONL in this archive. The
+verifier still handles legacy/plain JSONL files that carry no chain
+metadata. That is not tampering; it is the absence of a chain.
+verify_chain() distinguishes the two: it returns chain_present=False
+(not valid=False) so callers can render "chain not present" honestly
+instead of falsely crying "broken".
 
 The chain extends the existing run_store JSONL by adding two
 fields to every line:
@@ -257,8 +258,8 @@ class VerificationResult:
                    wrong or the entry's own hash was wrong.
 
     chain_present=False -> the file has entries but none carry
-                   hash-chain metadata (e.g. a plain run_store
-                   JSONL). This is NOT a verification failure:
+                   hash-chain metadata (e.g. a legacy/plain JSONL).
+                   This is NOT a verification failure:
                    `valid` stays True because there is nothing to
                    contradict, but the absence of tamper-evidence
                    is reported honestly so the compliance report

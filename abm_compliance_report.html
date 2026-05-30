@@ -69,7 +69,7 @@
 
 <h1>Compliance Report</h1>
 <div class="subtitle">
-  Regulated agentic ABM run · generated 2026-05-16T21:25:34.993889+00:00
+  Regulated agentic ABM run · generated 2026-05-30T11:09:41.364052+00:00
 </div>
 
 <dl class="meta-grid">
@@ -96,23 +96,23 @@
 <div class="score-row">
   <div class="score">
     <div class="label">State snapshots</div>
-    <div class="value">3</div>
+    <div class="value">1</div>
     <div class="detail">point-in-time state captures</div>
   </div>
   <div class="score">
     <div class="label">Approval records</div>
-    <div class="value">3</div>
+    <div class="value">2</div>
     <div class="detail">human decisions recorded</div>
   </div>
   <div class="score">
     <div class="label">Notification attempts</div>
-    <div class="value">2</div>
+    <div class="value">1</div>
     <div class="detail">Slack / email / null fan-out</div>
   </div>
   <div class="score">
     <div class="label">Hash chain</div>
-    <div class="value score-medium">Chain not present</div>
-    <div class="detail">This run was written without hash-chain metadata. Tamper-evidence is not available for this run; enable chained writes to obtain it.</div>
+    <div class="value score-good">Chain verified</div>
+    <div class="detail">All 4 entries are linked and self-consistent. This detects accidental corruption or edits made without the chaining code, but NOT an adversary with write access who re-runs the chaining. External audit needs signatures/HMAC, WORM/append-only storage, and/or external anchoring.</div>
   </div>
 </div>
 
@@ -131,7 +131,7 @@
       100.0%
     </div>
     <div class="detail">
-      7/7 claims
+      3/3 claims
       reference at least one citation
     </div>
   </div>
@@ -141,7 +141,7 @@
       100.0%
     </div>
     <div class="detail">
-      4/4
+      2/2
       dossiers carry backing claim IDs
     </div>
   </div>
@@ -151,7 +151,7 @@
       100.0%
     </div>
     <div class="detail">
-      4/4
+      2/2
       drafts carry backing claim IDs
     </div>
   </div>
@@ -177,7 +177,7 @@
       100.0%
     </div>
     <div class="detail">
-      4/4 drafts decided
+      2/2 drafts decided
       by an identified reviewer
     </div>
   </div>
@@ -188,12 +188,12 @@
   </div>
   <div class="score">
     <div class="label">Decisions logged</div>
-    <div class="value">3</div>
+    <div class="value">2</div>
     <div class="detail">across all artifact references</div>
   </div>
   <div class="score">
     <div class="label">Time to approval</div>
-    <div class="value">42.0 s</div>
+    <div class="value">1.0 s</div>
     <div class="detail">first request to last decision</div>
   </div>
 </div>
@@ -201,7 +201,7 @@
 <h3 style="font-size:13px;margin-top:24px;font-family:ui-monospace,monospace;
            text-transform:uppercase;letter-spacing:0.08em;
            color:var(--ink-dim);">Decision distribution</h3>
-<ul><li><strong>approved</strong>: 3</li></ul>
+<ul><li><strong>approved</strong>: 2</li></ul>
 
 <h3 style="font-size:13px;margin-top:16px;font-family:ui-monospace,monospace;
            text-transform:uppercase;letter-spacing:0.08em;

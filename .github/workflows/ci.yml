@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Compile Python files
+        run: |
+          python -m compileall audit_logger.py run_store.py compliance_report.py test_audit_chain.py test_run_store.py test_compliance_report.py scripts/generate_sample_report.py
+
+      - name: Run archive tests
+        run: |
+          python test_audit_chain.py
+          python test_run_store.py
+          python test_compliance_report.py

@@ -2,38 +2,23 @@
 Standalone regression test for the hash-chain integrity layer and
 the compliance report's chain-status rendering.
 
-Unlike test_compliance_report.py, this file depends ONLY on
-audit_logger + compliance_report + the standard library. It does
-NOT need fastapi or any of the pipeline modules (abm_state,
-run_store, signal_collector, ...), so it is runnable directly from
-this archive:
+This file depends on audit_logger, compliance_report, and the standard
+library. It does not need agent-pipeline modules.
 
-    cd <extracted dir>
+Run:
     python test_audit_chain.py
 
 Scenarios:
 
-A. Chained + valid     — append_chained x3, verify_chain is valid,
-                          chain_present True, summary "Chain verified".
-B. Tampered            — edit a middle entry, verify_chain fails on
-                          the right line, summary "Chain broken".
-C. Chain not present   — a plain run_store-style JSONL (no
-                          prev_hash/entry_hash). verify_chain is
-                          valid but chain_present False, summary
-                          "Chain not present". THIS is the case the
-                          shipped report got wrong ("Chain broken").
-D. Empty file          — summary "Chain empty".
-E. End-to-end report   — generate_for_run on an un-chained run JSONL
-                          produces HTML that says "Chain not present"
-                          and never "Chain broken". Direct regression
-                          for the bug in the originally shipped
-                          abm_compliance_report.html.
-F. Malformed JSON line  — a JSONL whose middle line is invalid JSON.
-                          verify_chain must NOT crash: it reports
-                          valid False, first_bad_line on the corrupt
-                          line, a "malformed" reason, and the summary
-                          renders "Chain broken" (a corrupt audit
-                          file is broken, not merely "not present").
+A. Chained + valid: append_chained x3, verify_chain is valid, and the
+   report summary says "Chain verified".
+B. Tampered: editing a middle entry breaks verification at that line.
+C. Chain not present: legacy/plain JSONL has no prev_hash/entry_hash,
+   so the report says "Chain not present" rather than "Chain broken".
+D. Empty file: summary says "Chain empty".
+E. End-to-end report: generate_for_run on legacy/plain JSONL preserves
+   the honest "Chain not present" label.
+F. Malformed JSON line: corrupt JSONL is reported as "Chain broken".
 """
 
 import json
@@ -122,7 +107,7 @@ def main() -> int:
     label, css, expl = _chain_summary(res)
     print(f"  summary -> {label} / {css}")
     assert label == "Chain not present", (
-        f"REGRESSION: un-chained JSONL must render 'Chain not "
+        f"REGRESSION: legacy/plain JSONL must render 'Chain not "
         f"present', got {label!r}"
     )
     assert css == "score-medium"
@@ -140,9 +125,9 @@ def main() -> int:
     assert label == "Chain empty"
 
     # =====================================================
-    # E. End-to-end: report on an un-chained run JSONL
+    # E. End-to-end: report on a legacy/plain run JSONL
     # =====================================================
-    _section("E. End-to-end report on un-chained run")
+    _section("E. End-to-end report on legacy/plain run")
     run_jsonl = tmp / "run.jsonl"
     state = {
         "run_id": "00000000-0000-0000-0000-000000000001",
@@ -165,9 +150,9 @@ def main() -> int:
     html = out.read_text(encoding="utf-8")
     assert html.startswith("<!doctype html>")
     assert "Chain not present" in html, \
-        "report must render the un-chained run honestly"
+        "report must render the legacy/plain run honestly"
     assert "Chain broken" not in html, (
-        "REGRESSION: an un-chained run must NOT be reported as "
+        "REGRESSION: a legacy/plain run must NOT be reported as "
         "'Chain broken' (this was the original shipped defect)"
     )
     assert "not a legal opinion" in html
@@ -214,6 +199,10 @@ def main() -> int:
 
     print("\nAll audit-chain assertions passed.")
     return 0
+
+
+def test_audit_chain_scenarios() -> None:
+    assert main() == 0
 
 
 if __name__ == "__main__":

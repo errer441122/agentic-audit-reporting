@@ -1,0 +1,2 @@
+# Runtime dependencies: none.
+# The shipped audit/reporting layer uses only the Python standard library.
