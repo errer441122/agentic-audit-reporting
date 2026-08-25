@@ -5,6 +5,8 @@
 Hash-chained audit logging and compliance-report generation for
 regulated agentic workflows.
 
+**[Open the live compliance report](https://errer441122.github.io/agentic-audit-reporting/abm_compliance_report.html)**
+
 This repository is intentionally scoped to the integrity and reporting
 layer. It does not ship the full ABM agent pipeline, reviewer UI,
 FastAPI service, source collectors, LLM claim extractor, or notification
@@ -18,7 +20,8 @@ adapters. What is present here runs from this archive and is tested.
   `prev_hash` and `entry_hash` on every line.
 - `compliance_report.py` reads a run JSONL and renders a self-contained
   HTML report mapped to EU AI Act Articles 12, 13, and 14.
-- `abm_compliance_report.html` is a generated sample report.
+- [`abm_compliance_report.html`](https://errer441122.github.io/agentic-audit-reporting/abm_compliance_report.html)
+  is a generated sample report published with GitHub Pages.
 - `test_audit_chain.py`, `test_run_store.py`, and
   `test_compliance_report.py` are runnable with only Python and the
   standard library.
