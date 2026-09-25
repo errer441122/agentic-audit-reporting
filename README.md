@@ -5,6 +5,11 @@
 Hash-chained audit logging and compliance-report generation for
 regulated agentic workflows.
 
+> **In 30 seconds**
+> - **What:** every step of an AI-assisted outreach run is written to a hash-chained log, and a report maps it to EU AI Act Articles 12, 13 and 14.
+> - **Why it matters:** each AI draft is traceable to its sources and to a named human approval. If one line is edited, the chain breaks and the report says "Chain broken".
+> - **Open:** the live report below, then `compliance_report.py`.
+
 **[Open the live compliance report](https://errer441122.github.io/agentic-audit-reporting/abm_compliance_report.html)**
 
 This repository is intentionally scoped to the integrity and reporting
