@@ -141,6 +141,23 @@ def main() -> int:
     assert "Chain broken" in tampered_html
     assert "Chain verified" not in tampered_html
 
+    # A truncated/corrupt line must still produce a report, not a crash.
+    with run_path.open("a", encoding="utf-8") as f:
+        f.write('{"kind": "approval_record", "rec\n')
+    corrupt_html = generate_for_run(
+        run_path,
+        store_dir / "corrupt_report.html",
+    ).read_text(encoding="utf-8")
+    assert "Chain broken" in corrupt_html
+
+    # run_id is used as a filename: path traversal must be refused.
+    for bad in ("../escape", "a/b", "..", ""):
+        try:
+            save_snapshot(store_dir, {**_state(run_id), "run_id": bad})
+        except ValueError:
+            continue
+        raise AssertionError(f"run_id {bad!r} was accepted")
+
     print("run_store chained-write assertions passed.")
     return 0
 

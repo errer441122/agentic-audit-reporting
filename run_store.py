@@ -20,6 +20,7 @@ generated from this store can legitimately render "Chain verified".
 from __future__ import annotations
 
 import json
+import re
 import threading
 from collections.abc import Mapping
 from dataclasses import asdict, is_dataclass
@@ -42,7 +43,15 @@ def artifact_ref_for_draft(run_id: str, role: str) -> str:
 
 
 def run_path(store_dir: Path, run_id: str) -> Path:
-    """Return the JSONL path for one run."""
+    """Return the JSONL path for one run.
+
+    run_id comes from pipeline state, so it is refused if it could
+    escape store_dir (``../x``, ``a/b``, absolute paths): only
+    ``[A-Za-z0-9._-]`` is allowed, which covers UUID run ids.
+    """
+    run_id = str(run_id)
+    if run_id in (".", "..") or not re.fullmatch(r"[A-Za-z0-9._-]+", run_id):
+        raise ValueError(f"invalid run_id: {run_id!r}")
     return Path(store_dir) / f"{run_id}.jsonl"
 
 
@@ -131,7 +140,7 @@ def read_entries(store_dir: Path, run_id: str) -> list[dict]:
 
 def load_latest(store_dir: Path, run_id: str) -> dict:
     """
-    Return the latest state snapshot plus approvals recorded after it.
+    Return the latest state snapshot plus every approval record in the run.
 
     Approval records are returned as plain dictionaries under
     state["approvals"], which keeps this archive independent from the

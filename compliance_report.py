@@ -56,7 +56,6 @@ Author: errer441122
 from __future__ import annotations
 
 import html
-import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -160,10 +159,10 @@ def compute_metrics(jsonl_path: Path) -> RunMetrics:
     if not jsonl_path.exists():
         raise FileNotFoundError(f"no run JSONL at {jsonl_path}")
 
-    raw_entries = [
-        json.loads(line) for line in jsonl_path.read_text(
-            encoding="utf-8").splitlines() if line.strip()
-    ]
+    # Malformed lines are skipped here, not raised: verify_chain() below
+    # reports them, so a corrupt file renders "Chain broken" instead of
+    # crashing the report it is supposed to appear in.
+    raw_entries = [e.payload for e in read_chain(jsonl_path) if not e.malformed]
 
     snapshots = [e for e in raw_entries if e.get("kind") == "state_snapshot"]
     approvals = [e for e in raw_entries
