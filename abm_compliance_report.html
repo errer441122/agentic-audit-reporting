@@ -1,217 +1,171 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<title>Compliance Report — Intesa Sanpaolo</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Compliance Report — Example Bank S.p.A.</title>
 <style>
-  :root {
-    --bg: #fafaf7; --ink: #1a1a1a; --ink-dim: #555;
-    --rule: #d8d4cb; --panel: #ffffff;
-    --good: #4f7d4f; --medium: #b07a35; --poor: #a44a4a;
-    --accent: #2d3e50;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; padding: 0; background: var(--bg);
-         color: var(--ink); font-family: Georgia, "Times New Roman", serif;
-         font-size: 14px; line-height: 1.6; }
-  .container { max-width: 880px; margin: 0 auto; padding: 48px 32px; }
-  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
-  .subtitle { color: var(--ink-dim); font-size: 13px;
-               margin-bottom: 32px; }
-  .meta-grid { display: grid; grid-template-columns: max-content 1fr;
-                gap: 4px 24px; padding: 16px 20px;
-                background: var(--panel); border: 1px solid var(--rule);
-                margin-bottom: 32px; font-size: 13px; }
-  .meta-grid dt { color: var(--ink-dim); font-family: ui-monospace,
-                   monospace; font-size: 12px; }
-  .meta-grid dd { margin: 0; }
-  h2 { font-size: 17px; margin: 36px 0 4px;
-        border-bottom: 1px solid var(--rule); padding-bottom: 6px; }
-  h2 .article { font-family: ui-monospace, monospace; font-size: 12px;
-                 color: var(--ink-dim); font-weight: normal;
-                 margin-right: 12px; }
-  .lede { color: var(--ink-dim); font-style: italic; margin: 8px 0 16px;
-           font-size: 13px; }
-  .score-row { display: flex; gap: 12px; flex-wrap: wrap;
-                margin: 16px 0; }
-  .score { flex: 1 1 200px; background: var(--panel);
-            border: 1px solid var(--rule); padding: 14px 16px; }
-  .score .label { font-family: ui-monospace, monospace; font-size: 11px;
-                   color: var(--ink-dim); text-transform: uppercase;
-                   letter-spacing: 0.08em; }
-  .score .value { font-size: 24px; font-weight: 600; margin-top: 4px;
-                   color: var(--accent); }
-  .score .value.score-good { color: var(--good); }
-  .score .value.score-medium { color: var(--medium); }
-  .score .value.score-poor { color: var(--poor); }
-  .score .detail { font-size: 12px; color: var(--ink-dim);
-                    margin-top: 4px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 12px;
-           font-size: 13px; }
-  th, td { text-align: left; padding: 8px 10px;
-            border-bottom: 1px solid var(--rule); }
-  th { font-family: ui-monospace, monospace; font-size: 11px;
-        color: var(--ink-dim); text-transform: uppercase;
-        letter-spacing: 0.08em; font-weight: 600; }
-  code { font-family: ui-monospace, monospace; font-size: 12px;
-          background: rgba(0,0,0,0.04); padding: 1px 4px;
-          border-radius: 2px; }
-  ul { margin: 8px 0 16px 20px; padding: 0; }
-  li { margin-bottom: 4px; }
-  .footer { margin-top: 48px; padding-top: 16px;
-             border-top: 1px solid var(--rule);
-             font-size: 12px; color: var(--ink-dim);
-             font-style: italic; }
-  .disclaimer { background: #fff8e6; border: 1px solid #d8c489;
-                 padding: 12px 16px; font-size: 12px;
-                 color: #4a3a14; margin: 24px 0; }
+:root {
+  --bg: #f3f4f6; --panel: #ffffff; --ink: #111827; --ink-2: #4b5563; --muted: #6b7280;
+  --line: #e5e7eb; --track: #eef0f3; --accent: #1f3a5f;
+  --good: #15803d; --good-bg: #ecfdf3; --medium: #b45309; --medium-bg: #fff7e6;
+  --poor: #b91c1c; --poor-bg: #fef2f2;
+  --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14.5px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.page { max-width: 920px; margin: 32px auto; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 14px; padding: 40px 44px; box-shadow: 0 1px 3px rgba(17,24,39,.06); }
+code { font-family: var(--mono); font-size: 12.5px; background: var(--track); padding: 1px 5px;
+  border-radius: 4px; overflow-wrap: anywhere; }
+.eyebrow, .k { font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 26px; line-height: 1.2; margin: 6px 0 18px; letter-spacing: -0.01em; }
+h1 span { color: var(--ink-2); font-weight: 500; }
+.meta { display: grid; grid-template-columns: minmax(0, 1.7fr) repeat(3, minmax(0, 1fr)); gap: 12px 20px; margin: 0;
+  padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.meta dt { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.meta dd { margin: 2px 0 0; }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 9px; border-radius: 999px;
+  background: var(--track); color: var(--ink-2); }
+.pill.approved { background: var(--good-bg); color: var(--good); }
+.pill.rejected { background: var(--poor-bg); color: var(--poor); }
+.pill.escalated, .pill.pending { background: var(--medium-bg); color: var(--medium); }
+.verdict { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 22px 0 18px; }
+.v { border-radius: 12px; padding: 14px 16px; border: 1px solid var(--line); border-top-width: 4px; }
+.v b { display: block; font-size: 22px; line-height: 1.25; margin: 4px 0 2px; }
+.v small { color: var(--ink-2); font-size: 13px; }
+.score-good { border-top-color: var(--good); } .score-good b { color: var(--good); }
+.score-medium { border-top-color: var(--medium); } .score-medium b { color: var(--medium); }
+.score-poor { border-top-color: var(--poor); } .score-poor b { color: var(--poor); }
+.disclaimer { background: var(--medium-bg); border: 1px solid #f3d9a4; color: #5b4310; border-radius: 10px;
+  padding: 11px 14px; font-size: 13px; margin: 0 0 8px; }
+section { margin-top: 30px; }
+h2 { font-size: 18px; margin: 0 0 4px; display: flex; align-items: baseline; gap: 10px; }
+h2 .art { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent);
+  background: #e8eef6; padding: 2px 8px; border-radius: 6px; }
+h3 { font-size: 13px; margin: 18px 0 8px; color: var(--ink-2); }
+.lede { color: var(--ink-2); margin: 4px 0 14px; font-size: 13.5px; max-width: 78ch; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.tile { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.tile b { display: block; font-size: 22px; margin: 2px 0; font-variant-numeric: tabular-nums; }
+.tile small { color: var(--muted); font-size: 12.5px; }
+.chain { margin-top: 10px; border: 1px solid var(--line); border-left-width: 4px; border-radius: 10px;
+  padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+.chain.score-good { border-left-color: var(--good); } .chain.score-medium { border-left-color: var(--medium); }
+.chain.score-poor { border-left-color: var(--poor); }
+.chain b { display: block; font-size: 18px; margin: 2px 0 4px; }
+.chain p, .chain small { margin: 0; color: var(--ink-2); font-size: 13px; }
+.chain .head code { display: block; margin: 4px 0 6px; padding: 6px 8px; }
+.meters { display: grid; gap: 12px; }
+.meter { display: grid; grid-template-columns: 170px minmax(0, 1fr) 64px; gap: 12px; align-items: center; }
+.meter .bar { height: 10px; border-radius: 5px; background: var(--track); overflow: hidden; }
+.meter .bar i { display: block; height: 100%; border-radius: 5px; background: var(--good); }
+.meter.score-medium .bar i { background: var(--medium); } .meter.score-poor .bar i { background: var(--poor); }
+.meter b { text-align: right; font-variant-numeric: tabular-nums; }
+.meter small { grid-column: 2 / 4; margin-top: -8px; color: var(--muted); font-size: 12.5px; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 6px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+thead th { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+ul.plain { margin: 0; padding-left: 18px; }
+.limit { font-size: 12.5px; color: var(--muted); margin: 14px 0 0; }
+footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+@media (max-width: 720px) {
+  .page { margin: 0; border-radius: 0; border: 0; padding: 24px 16px; }
+  .meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .verdict, .two, .chain { grid-template-columns: 1fr; }
+  .meter { grid-template-columns: minmax(0, 1fr) 56px; } .meter .bar { grid-column: 1 / 3; grid-row: 2; }
+  .meter small { grid-column: 1 / 3; margin-top: 0; }
+}
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body { background: #fff; } .page { margin: 0; border: 0; box-shadow: none; padding: 0; max-width: none; }
+  section, .verdict, .chain, table { break-inside: avoid; }
+}
 </style></head>
 <body>
-<div class="container">
+<div class="page">
 
-<h1>Compliance Report</h1>
-<div class="subtitle">
-  Regulated agentic ABM run · generated 2026-05-30T11:09:41.364052+00:00
-</div>
-
-<dl class="meta-grid">
-  <dt>RUN ID</dt><dd><code>a5042cea-6c6b-408d-afdd-a399a385914b</code></dd>
-  <dt>TARGET</dt><dd>Intesa Sanpaolo</dd>
-  <dt>STARTED</dt><dd><code>2026-05-16T10:00:00+00:00</code></dd>
-  <dt>FINAL PHASE</dt><dd><code>approved</code></dd>
+<header>
+<div class="eyebrow">Regulated agentic ABM run · EU AI Act audit-trail report</div>
+<h1>Compliance Report <span>— Example Bank S.p.A.</span></h1>
+<dl class="meta">
+  <div><dt>Run ID</dt><dd><code>a5042cea-6c6b-408d-afdd-a399a385914b</code></dd></div>
+  <div><dt>Started</dt><dd>16 May 2026, 10:00 UTC</dd></div>
+  <div><dt>Final phase</dt><dd><span class="pill approved">approved</span></dd></div>
+  <div><dt>Generated</dt><dd>16 May 2026, 11:10 UTC</dd></div>
 </dl>
+</header>
 
-<div class="disclaimer">
-  This document is a structural summary of the run's audit trail.
-  It is not a legal opinion and does not certify compliance with
-  any specific regulation. It is intended to support, not replace,
-  review by a qualified compliance professional.
-</div>
+<section class="verdict" aria-label="Summary">
+  <div class="v score-good"><span class="k">Art. 12 · Record-keeping</span><b>Chain verified</b>
+    <small>4 log entries checked</small></div>
+  <div class="v score-good"><span class="k">Art. 13 · Transparency</span><b>100.0%</b>
+    <small>of claims cite at least one source</small></div>
+  <div class="v score-good"><span class="k">Art. 14 · Human oversight</span><b>100.0%</b>
+    <small>of drafts decided by an identified reviewer</small></div>
+</section>
 
-<h2><span class="article">Art. 12</span>Record-keeping</h2>
-<div class="lede">
-  EU AI Act Article 12 requires that high-risk AI systems maintain
-  automatic logs of operations enabling traceability and post-market
-  monitoring. This section reports on the run's logging completeness
-  and tamper-evidence.
-</div>
-<div class="score-row">
-  <div class="score">
-    <div class="label">State snapshots</div>
-    <div class="value">1</div>
-    <div class="detail">point-in-time state captures</div>
-  </div>
-  <div class="score">
-    <div class="label">Approval records</div>
-    <div class="value">2</div>
-    <div class="detail">human decisions recorded</div>
-  </div>
-  <div class="score">
-    <div class="label">Notification attempts</div>
-    <div class="value">1</div>
-    <div class="detail">Slack / email / null fan-out</div>
-  </div>
-  <div class="score">
-    <div class="label">Hash chain</div>
-    <div class="value score-good">Chain verified</div>
-    <div class="detail">All 4 entries are linked and self-consistent. This detects accidental corruption or edits made without the chaining code, but NOT an adversary with write access who re-runs the chaining. External audit needs signatures/HMAC, WORM/append-only storage, and/or external anchoring.</div>
-  </div>
-</div>
+<p class="disclaimer">This document is a structural summary of the run's audit trail.
+It is not a legal opinion and does not certify compliance with any specific regulation.
+It is intended to support, not replace, review by a qualified compliance professional.</p>
 
-<h2><span class="article">Art. 13</span>Transparency &amp; provenance</h2>
-<div class="lede">
-  EU AI Act Article 13 requires that high-risk AI systems be designed
-  and developed in a way that ensures their operation is sufficiently
-  transparent. For an outreach pipeline, this translates into
-  per-output provenance: every generated assertion must be traceable
-  to a verifiable source.
+<section>
+<h2><span class="art">Art. 12</span>Record-keeping</h2>
+<p class="lede">EU AI Act Article 12 requires that high-risk AI systems maintain automatic logs of
+operations enabling traceability and post-market monitoring. This section reports on the run's logging
+completeness and tamper-evidence.</p>
+<div class="tiles">
+  <div class="tile"><span class="k">State snapshots</span><b>1</b><small>point-in-time state captures</small></div>
+  <div class="tile"><span class="k">Approval records</span><b>2</b><small>human decisions recorded</small></div>
+  <div class="tile"><span class="k">Notification attempts</span><b>1</b><small>Slack / email / null fan-out</small></div>
 </div>
-<div class="score-row">
-  <div class="score">
-    <div class="label">Citation coverage</div>
-    <div class="value score-good">
-      100.0%
-    </div>
-    <div class="detail">
-      3/3 claims
-      reference at least one citation
-    </div>
-  </div>
-  <div class="score">
-    <div class="label">Dossier coverage</div>
-    <div class="value score-good">
-      100.0%
-    </div>
-    <div class="detail">
-      2/2
-      dossiers carry backing claim IDs
-    </div>
-  </div>
-  <div class="score">
-    <div class="label">Draft coverage</div>
-    <div class="value score-good">
-      100.0%
-    </div>
-    <div class="detail">
-      2/2
-      drafts carry backing claim IDs
-    </div>
-  </div>
-  <div class="score">
-    <div class="label">Source citations</div>
-    <div class="value">3</div>
-    <div class="detail">primary sources consulted</div>
-  </div>
+<div class="chain score-good">
+  <div><span class="k">Hash chain</span><b>Chain verified</b><p>All 4 entries are linked and self-consistent. This detects accidental corruption or edits made without the chaining code, but NOT an adversary with write access who re-runs the chaining. External audit needs signatures/HMAC, WORM/append-only storage, and/or external anchoring.</p></div>
+  <div class="head"><span class="k">Head hash (SHA-256)</span><code>35e8184561d5d3dfdd9288432ff57142526cf217acb027cec7b402292527c225</code><small>Record this value outside the system. A log that is later rewritten or truncated will no longer end at this hash.</small></div>
 </div>
+</section>
 
-<h2><span class="article">Art. 14</span>Human oversight</h2>
-<div class="lede">
-  EU AI Act Article 14 requires that high-risk AI systems be designed
-  and developed in such a way that they can be effectively overseen
-  by natural persons. For outreach automation, this means that no
-  communication leaves the system without an identifiable human
-  decision.
+<section>
+<h2><span class="art">Art. 13</span>Transparency &amp; provenance</h2>
+<p class="lede">EU AI Act Article 13 requires that high-risk AI systems be designed and developed in a way
+that ensures their operation is sufficiently transparent. For an outreach pipeline, this translates into
+per-output provenance: every generated assertion must be traceable to a verifiable source.</p>
+<div class="meters">
+  <div class="meter score-good"><span>Citation coverage</span><span class="bar"><i style="width:100.0%"></i></span><b>100.0%</b><small>3/3 claims reference at least one citation</small></div>
+  <div class="meter score-good"><span>Dossier coverage</span><span class="bar"><i style="width:100.0%"></i></span><b>100.0%</b><small>2/2 dossiers carry backing claim IDs</small></div>
+  <div class="meter score-good"><span>Draft coverage</span><span class="bar"><i style="width:100.0%"></i></span><b>100.0%</b><small>2/2 drafts carry backing claim IDs</small></div>
 </div>
-<div class="score-row">
-  <div class="score">
-    <div class="label">HITL coverage</div>
-    <div class="value score-good">
-      100.0%
-    </div>
-    <div class="detail">
-      2/2 drafts decided
-      by an identified reviewer
-    </div>
-  </div>
-  <div class="score">
-    <div class="label">Reviewers</div>
-    <div class="value">1</div>
-    <div class="detail">distinct identities recorded</div>
-  </div>
-  <div class="score">
-    <div class="label">Decisions logged</div>
-    <div class="value">2</div>
-    <div class="detail">across all artifact references</div>
-  </div>
-  <div class="score">
-    <div class="label">Time to approval</div>
-    <div class="value">1.0 s</div>
-    <div class="detail">first request to last decision</div>
-  </div>
+<h3>Per-draft provenance and decision · 3 primary sources consulted</h3>
+<div class="scroll"><table>
+<thead><tr><th>Draft</th><th class="n">Backing claims</th><th class="n">Sources</th><th>Decision</th><th>Reviewer</th><th>Decided</th></tr></thead>
+<tbody><tr><td>Economic buyer</td><td class="n">1</td><td class="n">1</td><td><span class="pill approved">approved</span></td><td><code>m.rossi@example.com</code></td><td>16 May 2026, 10:42 UTC</td></tr><tr><td>Legal compliance</td><td class="n">1</td><td class="n">1</td><td><span class="pill approved">approved</span></td><td><code>l.bianchi@example.com</code></td><td>16 May 2026, 11:07 UTC</td></tr></tbody>
+</table></div>
+</section>
+
+<section>
+<h2><span class="art">Art. 14</span>Human oversight</h2>
+<p class="lede">EU AI Act Article 14 requires that high-risk AI systems be designed and developed in such a
+way that they can be effectively overseen by natural persons. For outreach automation, this means that no
+communication leaves the system without an identifiable human decision.</p>
+<div class="tiles">
+  <div class="tile"><span class="k">HITL coverage</span><b>100.0%</b><small>2/2 drafts decided by an identified reviewer</small></div>
+  <div class="tile"><span class="k">Reviewers</span><b>2</b><small>distinct identities recorded</small></div>
+  <div class="tile"><span class="k">Decisions logged</span><b>2</b><small>across all artifact references</small></div>
+  <div class="tile"><span class="k">Time to approval</span><b>1 h 07 min</b><small>first request to last decision</small></div>
 </div>
-
-<h3 style="font-size:13px;margin-top:24px;font-family:ui-monospace,monospace;
-           text-transform:uppercase;letter-spacing:0.08em;
-           color:var(--ink-dim);">Decision distribution</h3>
-<ul><li><strong>approved</strong>: 2</li></ul>
-
-<h3 style="font-size:13px;margin-top:16px;font-family:ui-monospace,monospace;
-           text-transform:uppercase;letter-spacing:0.08em;
-           color:var(--ink-dim);">Identified reviewers</h3>
-<ul><li><code>alice@firm.eu</code></li></ul>
-
-<div class="footer">
-  Generated from <code>a5042cea-6c6b-408d-afdd-a399a385914b.jsonl</code>.
-  All metrics derive from the run's audit trail. The underlying
-  JSONL is the canonical record; this HTML is a rendered view.
+<div class="two">
+  <div><h3>Decision distribution</h3><ul class="chips"><li><span class="pill approved">approved × 2</span></li></ul></div>
+  <div><h3>Identified reviewers</h3><ul class="plain"><li><code>l.bianchi@example.com</code></li><li><code>m.rossi@example.com</code></li></ul></div>
 </div>
+<p class="limit">Coverage counts every draft <em>role</em> that received a decision: two drafts for the
+same role share one approval key, so 100% means every role was decided, not every recipient
+individually reviewed.</p>
+</section>
+
+<footer>Generated from <code>a5042cea-6c6b-408d-afdd-a399a385914b.jsonl</code>. All metrics derive from the run's audit trail.
+The underlying JSONL is the canonical record; this HTML is a rendered view.</footer>
 
 </div></body></html>

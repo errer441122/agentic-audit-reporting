@@ -2,13 +2,16 @@
 Regenerate the committed sample compliance report.
 
 The sample is built through run_store, so the JSONL write path is
-hash-chained before compliance_report renders the HTML.
+hash-chained before compliance_report renders the HTML. The target,
+reviewers and timings are fictional and `generated_at` is pinned; the
+head hash still changes on every regeneration, because each log entry
+is timestamped when it is written.
 """
 
 from __future__ import annotations
 
-import tempfile
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,13 +28,21 @@ from run_store import (
 
 
 RUN_ID = "a5042cea-6c6b-408d-afdd-a399a385914b"
+GENERATED_AT = "2026-05-16T11:10:00+00:00"
+# (draft role, reviewer, decided_at, rationale) — fictional people, reserved domain.
+DECISIONS = (
+    ("economic_buyer", "m.rossi@example.com", "2026-05-16T10:42:10+00:00",
+     "claims match the cited annual report and press release"),
+    ("legal_compliance", "l.bianchi@example.com", "2026-05-16T11:07:30+00:00",
+     "regulatory reference verified against the cited source"),
+)
 
 
 def sample_state() -> dict:
     return {
         "run_id": RUN_ID,
         "target_account": {
-            "legal_name": "Intesa Sanpaolo",
+            "legal_name": "Example Bank S.p.A.",
             "country": "IT",
         },
         "supervisor_phase": "approved",
@@ -64,8 +75,11 @@ def sample_state() -> dict:
 
 
 def build_sample(output_path: Path) -> Path:
-    store_dir = Path(tempfile.mkdtemp(prefix="abm_sample_"))
+    with tempfile.TemporaryDirectory(prefix="abm_sample_") as tmp:
+        return _build(Path(tmp), output_path)
 
+
+def _build(store_dir: Path, output_path: Path) -> Path:
     save_snapshot(store_dir, sample_state())
     append_notification_attempt(
         store_dir,
@@ -78,24 +92,26 @@ def build_sample(output_path: Path) -> Path:
             "run_id": RUN_ID,
         },
     )
-    for role in ("economic_buyer", "legal_compliance"):
+    for role, reviewer, decided_at, rationale in DECISIONS:
         append_approval_record(
             store_dir,
             RUN_ID,
             {
                 "artifact_ref": artifact_ref_for_draft(RUN_ID, role),
                 "decision": "approved",
-                "decided_by": "alice@firm.eu",
-                "decided_at": "2026-05-16T10:00:02+00:00",
-                "rationale": "fixture approval",
+                "decided_by": reviewer,
+                "decided_at": decided_at,
+                "rationale": rationale,
             },
         )
 
-    return generate_for_run(store_dir / f"{RUN_ID}.jsonl", output_path)
+    return generate_for_run(
+        store_dir / f"{RUN_ID}.jsonl", output_path, generated_at=GENERATED_AT
+    )
 
 
 def main() -> int:
-    out = build_sample(Path("abm_compliance_report.html"))
+    out = build_sample(ROOT / "abm_compliance_report.html")
     print(f"wrote {out}")
     return 0
 

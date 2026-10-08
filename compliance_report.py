@@ -41,9 +41,10 @@ Design choices
 - **No external CSS / JS / fonts.** The report is a single self-
   contained HTML file. A compliance officer should be able to
   archive it, email it, print it to PDF, all without breakage.
-- **Deterministic.** Same JSONL in produces the same HTML out
-  (modulo a "generated_at" timestamp). This is how the report
-  becomes diffable across runs.
+- **Deterministic.** Same JSONL in produces the same HTML out;
+  pass ``generated_at`` to render_html()/generate_for_run() to pin
+  the only time-dependent field. This is how the report becomes
+  diffable across runs.
 - **Conservative.** Metrics show what they show; we do NOT
   interpret them as compliance certifications. The HTML
   explicitly says "this is a structural summary, not a legal
@@ -79,6 +80,18 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
+class DraftRow:
+    """One outreach draft: its provenance and the decision taken on it."""
+
+    role: str
+    claims: int        # backing claim IDs on the draft
+    citations: int     # distinct sources behind those claims
+    decision: str      # "" when no approval record matches the draft
+    decided_by: str
+    decided_at: str
+
+
+@dataclass(frozen=True)
 class RunMetrics:
     """All metrics extracted from one run's JSONL."""
 
@@ -107,6 +120,9 @@ class RunMetrics:
     decisions_by_type: dict[str, int]   # approved/rejected/escalated
     drafts_decided: int
     time_to_approval_seconds: float | None    # first request -> last decision
+
+    # Evidence: one row per outreach draft (Articles 13 and 14).
+    draft_rows: tuple[DraftRow, ...] = ()
 
     @property
     def citation_coverage(self) -> float:
@@ -223,6 +239,29 @@ def compute_metrics(jsonl_path: Path) -> RunMetrics:
         in decided_refs
     )
 
+    # Per-draft evidence: backing claims, the distinct sources behind
+    # them, and the latest decision recorded for the draft's role.
+    cites_by_claim = {c.get("id"): c.get("citation_ids") or [] for c in claims}
+    decision_by_ref: dict[str, dict] = {}
+    for ap_entry in approvals:
+        rec = ap_entry.get("record", {})
+        if rec.get("artifact_ref"):
+            decision_by_ref[rec["artifact_ref"]] = rec
+    draft_rows = []
+    for d in drafts:
+        claim_ids = d.get("backing_claim_ids") or []
+        rec = decision_by_ref.get(
+            artifact_ref_for_draft(latest_state["run_id"], d.get("role")), {}
+        )
+        draft_rows.append(DraftRow(
+            role=str(d.get("role") or "?"),
+            claims=len(claim_ids),
+            citations=len({c for k in claim_ids for c in cites_by_claim.get(k, [])}),
+            decision=str(rec.get("decision") or ""),
+            decided_by=str(rec.get("decided_by") or ""),
+            decided_at=str(rec.get("decided_at") or ""),
+        ))
+
     # Time-to-approval: first REVIEW_REQUESTED notification → last
     # approval_record decided_at.
     request_ts = None
@@ -276,6 +315,7 @@ def compute_metrics(jsonl_path: Path) -> RunMetrics:
         decisions_by_type=dict(decisions),
         drafts_decided=drafts_decided,
         time_to_approval_seconds=ttap,
+        draft_rows=tuple(draft_rows),
     )
 
 
@@ -329,252 +369,260 @@ def _chain_summary(status: VerificationResult) -> tuple[str, str, str]:
                 "but NOT an adversary with write access who re-runs "
                 "the chaining. External audit needs signatures/HMAC, "
                 "WORM/append-only storage, and/or external anchoring.")
+    where = (f" at line {status.first_bad_line}"
+             if status.first_bad_line is not None else "")
     return ("Chain broken",
             "score-poor",
-            f"Verification failed at line {status.first_bad_line}: "
-            f"{status.reason}")
+            f"Verification failed{where}: {status.reason}")
 
 
-def render_html(metrics: RunMetrics) -> str:
-    """Render the metrics as a single self-contained HTML document."""
+def _fmt_ts(ts: str) -> str:
+    """'2026-05-16T10:42:10+00:00' -> '16 May 2026, 10:42 UTC'."""
+    dt = _parse_ts(ts)
+    if dt is None:
+        return ts or "—"
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc)
+    return f"{dt.day} {dt:%b %Y, %H:%M} UTC"
 
-    chain_label, chain_class, chain_explanation = _chain_summary(
-        metrics.chain_status
+
+def _fmt_duration(seconds: float | None) -> str:
+    if seconds is None:
+        return "n/a"
+    if seconds < 60:
+        return f"{seconds:.1f} s"
+    minutes, secs = divmod(int(round(seconds)), 60)
+    if minutes < 60:
+        return f"{minutes} min {secs:02d} s"
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours} h {minutes:02d} min"
+
+
+def _role(role: str) -> str:
+    """'legal_compliance' -> 'Legal compliance'."""
+    return role.replace("_", " ").capitalize() if role else "?"
+
+
+_CSS = """
+:root {
+  --bg: #f3f4f6; --panel: #ffffff; --ink: #111827; --ink-2: #4b5563; --muted: #6b7280;
+  --line: #e5e7eb; --track: #eef0f3; --accent: #1f3a5f;
+  --good: #15803d; --good-bg: #ecfdf3; --medium: #b45309; --medium-bg: #fff7e6;
+  --poor: #b91c1c; --poor-bg: #fef2f2;
+  --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14.5px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.page { max-width: 920px; margin: 32px auto; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 14px; padding: 40px 44px; box-shadow: 0 1px 3px rgba(17,24,39,.06); }
+code { font-family: var(--mono); font-size: 12.5px; background: var(--track); padding: 1px 5px;
+  border-radius: 4px; overflow-wrap: anywhere; }
+.eyebrow, .k { font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 26px; line-height: 1.2; margin: 6px 0 18px; letter-spacing: -0.01em; }
+h1 span { color: var(--ink-2); font-weight: 500; }
+.meta { display: grid; grid-template-columns: minmax(0, 1.7fr) repeat(3, minmax(0, 1fr)); gap: 12px 20px; margin: 0;
+  padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.meta dt { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.meta dd { margin: 2px 0 0; }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 9px; border-radius: 999px;
+  background: var(--track); color: var(--ink-2); }
+.pill.approved { background: var(--good-bg); color: var(--good); }
+.pill.rejected { background: var(--poor-bg); color: var(--poor); }
+.pill.escalated, .pill.pending { background: var(--medium-bg); color: var(--medium); }
+.verdict { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 22px 0 18px; }
+.v { border-radius: 12px; padding: 14px 16px; border: 1px solid var(--line); border-top-width: 4px; }
+.v b { display: block; font-size: 22px; line-height: 1.25; margin: 4px 0 2px; }
+.v small { color: var(--ink-2); font-size: 13px; }
+.score-good { border-top-color: var(--good); } .score-good b { color: var(--good); }
+.score-medium { border-top-color: var(--medium); } .score-medium b { color: var(--medium); }
+.score-poor { border-top-color: var(--poor); } .score-poor b { color: var(--poor); }
+.disclaimer { background: var(--medium-bg); border: 1px solid #f3d9a4; color: #5b4310; border-radius: 10px;
+  padding: 11px 14px; font-size: 13px; margin: 0 0 8px; }
+section { margin-top: 30px; }
+h2 { font-size: 18px; margin: 0 0 4px; display: flex; align-items: baseline; gap: 10px; }
+h2 .art { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent);
+  background: #e8eef6; padding: 2px 8px; border-radius: 6px; }
+h3 { font-size: 13px; margin: 18px 0 8px; color: var(--ink-2); }
+.lede { color: var(--ink-2); margin: 4px 0 14px; font-size: 13.5px; max-width: 78ch; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.tile { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.tile b { display: block; font-size: 22px; margin: 2px 0; font-variant-numeric: tabular-nums; }
+.tile small { color: var(--muted); font-size: 12.5px; }
+.chain { margin-top: 10px; border: 1px solid var(--line); border-left-width: 4px; border-radius: 10px;
+  padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+.chain.score-good { border-left-color: var(--good); } .chain.score-medium { border-left-color: var(--medium); }
+.chain.score-poor { border-left-color: var(--poor); }
+.chain b { display: block; font-size: 18px; margin: 2px 0 4px; }
+.chain p, .chain small { margin: 0; color: var(--ink-2); font-size: 13px; }
+.chain .head code { display: block; margin: 4px 0 6px; padding: 6px 8px; }
+.meters { display: grid; gap: 12px; }
+.meter { display: grid; grid-template-columns: 170px minmax(0, 1fr) 64px; gap: 12px; align-items: center; }
+.meter .bar { height: 10px; border-radius: 5px; background: var(--track); overflow: hidden; }
+.meter .bar i { display: block; height: 100%; border-radius: 5px; background: var(--good); }
+.meter.score-medium .bar i { background: var(--medium); } .meter.score-poor .bar i { background: var(--poor); }
+.meter b { text-align: right; font-variant-numeric: tabular-nums; }
+.meter small { grid-column: 2 / 4; margin-top: -8px; color: var(--muted); font-size: 12.5px; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 6px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+thead th { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+ul.plain { margin: 0; padding-left: 18px; }
+.limit { font-size: 12.5px; color: var(--muted); margin: 14px 0 0; }
+footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+@media (max-width: 720px) {
+  .page { margin: 0; border-radius: 0; border: 0; padding: 24px 16px; }
+  .meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .verdict, .two, .chain { grid-template-columns: 1fr; }
+  .meter { grid-template-columns: minmax(0, 1fr) 56px; } .meter .bar { grid-column: 1 / 3; grid-row: 2; }
+  .meter small { grid-column: 1 / 3; margin-top: 0; }
+}
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body { background: #fff; } .page { margin: 0; border: 0; box-shadow: none; padding: 0; max-width: none; }
+  section, .verdict, .chain, table { break-inside: avoid; }
+}
+"""
+
+
+def _tile(label: str, value: str, detail: str) -> str:
+    return (f'<div class="tile"><span class="k">{html.escape(label)}</span>'
+            f'<b>{html.escape(value)}</b><small>{html.escape(detail)}</small></div>')
+
+
+def _meter(label: str, share: float, detail: str) -> str:
+    return (f'<div class="meter {_score_band(share)}"><span>{html.escape(label)}</span>'
+            f'<span class="bar"><i style="width:{max(share, 0.0) * 100:.1f}%"></i></span>'
+            f'<b>{_pct(share)}</b><small>{html.escape(detail)}</small></div>')
+
+
+def render_html(metrics: RunMetrics, generated_at: str | None = None) -> str:
+    """Render the metrics as a single self-contained HTML document.
+
+    Pass `generated_at` (ISO-8601) for byte-identical output across runs;
+    it defaults to the current UTC time.
+    """
+    m = metrics
+    esc = html.escape
+    chain_label, chain_class, chain_explanation = _chain_summary(m.chain_status)
+    generated_at = generated_at or datetime.now(timezone.utc).isoformat()
+    head = m.chain_status.head_hash
+
+    head_html = (
+        f'<div class="head"><span class="k">Head hash (SHA-256)</span><code>{esc(head)}</code>'
+        '<small>Record this value outside the system. A log that is later '
+        'rewritten or truncated will no longer end at this hash.</small></div>'
+        if head and m.chain_status.valid else ""
     )
 
+    draft_rows = "".join(
+        f'<tr><td>{esc(_role(d.role))}</td><td class="n">{d.claims}</td>'
+        f'<td class="n">{d.citations}</td>'
+        f'<td><span class="pill {esc(d.decision or "pending")}">{esc(d.decision or "pending")}</span></td>'
+        f'<td>{f"<code>{esc(d.decided_by)}</code>" if d.decided_by else "—"}</td>'
+        f'<td>{esc(_fmt_ts(d.decided_at)) if d.decided_at else "—"}</td></tr>'
+        for d in m.draft_rows
+    ) or '<tr><td colspan="6"><em>No outreach drafts in this run.</em></td></tr>'
+
     decisions_html = "".join(
-        f"<li><strong>{html.escape(k)}</strong>: {v}</li>"
-        for k, v in sorted(metrics.decisions_by_type.items())
+        f'<li><span class="pill {esc(k)}">{esc(k)} × {v}</span></li>'
+        for k, v in sorted(m.decisions_by_type.items())
     ) or "<li><em>No decisions recorded.</em></li>"
 
     reviewers_html = "".join(
-        f"<li><code>{html.escape(r)}</code></li>"
-        for r in metrics.reviewers
+        f"<li><code>{esc(r)}</code></li>" for r in m.reviewers
     ) or "<li><em>No reviewers identified.</em></li>"
-
-    ttap_str = (
-        f"{metrics.time_to_approval_seconds:.1f} s"
-        if metrics.time_to_approval_seconds is not None
-        else "n/a"
-    )
-
-    generated_at = datetime.now(timezone.utc).isoformat()
 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<title>Compliance Report — {html.escape(metrics.target_name)}</title>
-<style>
-  :root {{
-    --bg: #fafaf7; --ink: #1a1a1a; --ink-dim: #555;
-    --rule: #d8d4cb; --panel: #ffffff;
-    --good: #4f7d4f; --medium: #b07a35; --poor: #a44a4a;
-    --accent: #2d3e50;
-  }}
-  * {{ box-sizing: border-box; }}
-  body {{ margin: 0; padding: 0; background: var(--bg);
-         color: var(--ink); font-family: Georgia, "Times New Roman", serif;
-         font-size: 14px; line-height: 1.6; }}
-  .container {{ max-width: 880px; margin: 0 auto; padding: 48px 32px; }}
-  h1 {{ font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }}
-  .subtitle {{ color: var(--ink-dim); font-size: 13px;
-               margin-bottom: 32px; }}
-  .meta-grid {{ display: grid; grid-template-columns: max-content 1fr;
-                gap: 4px 24px; padding: 16px 20px;
-                background: var(--panel); border: 1px solid var(--rule);
-                margin-bottom: 32px; font-size: 13px; }}
-  .meta-grid dt {{ color: var(--ink-dim); font-family: ui-monospace,
-                   monospace; font-size: 12px; }}
-  .meta-grid dd {{ margin: 0; }}
-  h2 {{ font-size: 17px; margin: 36px 0 4px;
-        border-bottom: 1px solid var(--rule); padding-bottom: 6px; }}
-  h2 .article {{ font-family: ui-monospace, monospace; font-size: 12px;
-                 color: var(--ink-dim); font-weight: normal;
-                 margin-right: 12px; }}
-  .lede {{ color: var(--ink-dim); font-style: italic; margin: 8px 0 16px;
-           font-size: 13px; }}
-  .score-row {{ display: flex; gap: 12px; flex-wrap: wrap;
-                margin: 16px 0; }}
-  .score {{ flex: 1 1 200px; background: var(--panel);
-            border: 1px solid var(--rule); padding: 14px 16px; }}
-  .score .label {{ font-family: ui-monospace, monospace; font-size: 11px;
-                   color: var(--ink-dim); text-transform: uppercase;
-                   letter-spacing: 0.08em; }}
-  .score .value {{ font-size: 24px; font-weight: 600; margin-top: 4px;
-                   color: var(--accent); }}
-  .score .value.score-good {{ color: var(--good); }}
-  .score .value.score-medium {{ color: var(--medium); }}
-  .score .value.score-poor {{ color: var(--poor); }}
-  .score .detail {{ font-size: 12px; color: var(--ink-dim);
-                    margin-top: 4px; }}
-  table {{ width: 100%; border-collapse: collapse; margin-top: 12px;
-           font-size: 13px; }}
-  th, td {{ text-align: left; padding: 8px 10px;
-            border-bottom: 1px solid var(--rule); }}
-  th {{ font-family: ui-monospace, monospace; font-size: 11px;
-        color: var(--ink-dim); text-transform: uppercase;
-        letter-spacing: 0.08em; font-weight: 600; }}
-  code {{ font-family: ui-monospace, monospace; font-size: 12px;
-          background: rgba(0,0,0,0.04); padding: 1px 4px;
-          border-radius: 2px; }}
-  ul {{ margin: 8px 0 16px 20px; padding: 0; }}
-  li {{ margin-bottom: 4px; }}
-  .footer {{ margin-top: 48px; padding-top: 16px;
-             border-top: 1px solid var(--rule);
-             font-size: 12px; color: var(--ink-dim);
-             font-style: italic; }}
-  .disclaimer {{ background: #fff8e6; border: 1px solid #d8c489;
-                 padding: 12px 16px; font-size: 12px;
-                 color: #4a3a14; margin: 24px 0; }}
-</style></head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Compliance Report — {esc(m.target_name)}</title>
+<style>{_CSS}</style></head>
 <body>
-<div class="container">
+<div class="page">
 
-<h1>Compliance Report</h1>
-<div class="subtitle">
-  Regulated agentic ABM run · generated {html.escape(generated_at)}
-</div>
-
-<dl class="meta-grid">
-  <dt>RUN ID</dt><dd><code>{html.escape(metrics.run_id)}</code></dd>
-  <dt>TARGET</dt><dd>{html.escape(metrics.target_name)}</dd>
-  <dt>STARTED</dt><dd><code>{html.escape(metrics.started_at)}</code></dd>
-  <dt>FINAL PHASE</dt><dd><code>{html.escape(metrics.final_phase)}</code></dd>
+<header>
+<div class="eyebrow">Regulated agentic ABM run · EU AI Act audit-trail report</div>
+<h1>Compliance Report <span>— {esc(m.target_name)}</span></h1>
+<dl class="meta">
+  <div><dt>Run ID</dt><dd><code>{esc(m.run_id)}</code></dd></div>
+  <div><dt>Started</dt><dd>{esc(_fmt_ts(m.started_at))}</dd></div>
+  <div><dt>Final phase</dt><dd><span class="pill {esc(m.final_phase)}">{esc(m.final_phase)}</span></dd></div>
+  <div><dt>Generated</dt><dd>{esc(_fmt_ts(generated_at))}</dd></div>
 </dl>
+</header>
 
-<div class="disclaimer">
-  This document is a structural summary of the run's audit trail.
-  It is not a legal opinion and does not certify compliance with
-  any specific regulation. It is intended to support, not replace,
-  review by a qualified compliance professional.
-</div>
+<section class="verdict" aria-label="Summary">
+  <div class="v {chain_class}"><span class="k">Art. 12 · Record-keeping</span><b>{esc(chain_label)}</b>
+    <small>{m.chain_status.entries_checked} log entries checked</small></div>
+  <div class="v {_score_band(m.citation_coverage)}"><span class="k">Art. 13 · Transparency</span><b>{_pct(m.citation_coverage)}</b>
+    <small>of claims cite at least one source</small></div>
+  <div class="v {_score_band(m.hitl_coverage)}"><span class="k">Art. 14 · Human oversight</span><b>{_pct(m.hitl_coverage)}</b>
+    <small>of drafts decided by an identified reviewer</small></div>
+</section>
 
-<h2><span class="article">Art. 12</span>Record-keeping</h2>
-<div class="lede">
-  EU AI Act Article 12 requires that high-risk AI systems maintain
-  automatic logs of operations enabling traceability and post-market
-  monitoring. This section reports on the run's logging completeness
-  and tamper-evidence.
-</div>
-<div class="score-row">
-  <div class="score">
-    <div class="label">State snapshots</div>
-    <div class="value">{metrics.snapshots_count}</div>
-    <div class="detail">point-in-time state captures</div>
-  </div>
-  <div class="score">
-    <div class="label">Approval records</div>
-    <div class="value">{metrics.approval_records_count}</div>
-    <div class="detail">human decisions recorded</div>
-  </div>
-  <div class="score">
-    <div class="label">Notification attempts</div>
-    <div class="value">{metrics.notification_attempts_count}</div>
-    <div class="detail">Slack / email / null fan-out</div>
-  </div>
-  <div class="score">
-    <div class="label">Hash chain</div>
-    <div class="value {chain_class}">{html.escape(chain_label)}</div>
-    <div class="detail">{html.escape(chain_explanation)}</div>
-  </div>
-</div>
+<p class="disclaimer">This document is a structural summary of the run's audit trail.
+It is not a legal opinion and does not certify compliance with any specific regulation.
+It is intended to support, not replace, review by a qualified compliance professional.</p>
 
-<h2><span class="article">Art. 13</span>Transparency &amp; provenance</h2>
-<div class="lede">
-  EU AI Act Article 13 requires that high-risk AI systems be designed
-  and developed in a way that ensures their operation is sufficiently
-  transparent. For an outreach pipeline, this translates into
-  per-output provenance: every generated assertion must be traceable
-  to a verifiable source.
+<section>
+<h2><span class="art">Art. 12</span>Record-keeping</h2>
+<p class="lede">EU AI Act Article 12 requires that high-risk AI systems maintain automatic logs of
+operations enabling traceability and post-market monitoring. This section reports on the run's logging
+completeness and tamper-evidence.</p>
+<div class="tiles">
+  {_tile("State snapshots", str(m.snapshots_count), "point-in-time state captures")}
+  {_tile("Approval records", str(m.approval_records_count), "human decisions recorded")}
+  {_tile("Notification attempts", str(m.notification_attempts_count), "Slack / email / null fan-out")}
 </div>
-<div class="score-row">
-  <div class="score">
-    <div class="label">Citation coverage</div>
-    <div class="value {_score_band(metrics.citation_coverage)}">
-      {_pct(metrics.citation_coverage)}
-    </div>
-    <div class="detail">
-      {metrics.claims_with_provenance}/{metrics.claims_count} claims
-      reference at least one citation
-    </div>
-  </div>
-  <div class="score">
-    <div class="label">Dossier coverage</div>
-    <div class="value {_score_band(metrics.dossier_coverage)}">
-      {_pct(metrics.dossier_coverage)}
-    </div>
-    <div class="detail">
-      {metrics.dossiers_with_backing}/{metrics.dossiers_count}
-      dossiers carry backing claim IDs
-    </div>
-  </div>
-  <div class="score">
-    <div class="label">Draft coverage</div>
-    <div class="value {_score_band(metrics.draft_coverage)}">
-      {_pct(metrics.draft_coverage)}
-    </div>
-    <div class="detail">
-      {metrics.drafts_with_backing}/{metrics.drafts_count}
-      drafts carry backing claim IDs
-    </div>
-  </div>
-  <div class="score">
-    <div class="label">Source citations</div>
-    <div class="value">{metrics.citations_count}</div>
-    <div class="detail">primary sources consulted</div>
-  </div>
+<div class="chain {chain_class}">
+  <div><span class="k">Hash chain</span><b>{esc(chain_label)}</b><p>{esc(chain_explanation)}</p></div>
+  {head_html}
 </div>
+</section>
 
-<h2><span class="article">Art. 14</span>Human oversight</h2>
-<div class="lede">
-  EU AI Act Article 14 requires that high-risk AI systems be designed
-  and developed in such a way that they can be effectively overseen
-  by natural persons. For outreach automation, this means that no
-  communication leaves the system without an identifiable human
-  decision.
+<section>
+<h2><span class="art">Art. 13</span>Transparency &amp; provenance</h2>
+<p class="lede">EU AI Act Article 13 requires that high-risk AI systems be designed and developed in a way
+that ensures their operation is sufficiently transparent. For an outreach pipeline, this translates into
+per-output provenance: every generated assertion must be traceable to a verifiable source.</p>
+<div class="meters">
+  {_meter("Citation coverage", m.citation_coverage, f"{m.claims_with_provenance}/{m.claims_count} claims reference at least one citation")}
+  {_meter("Dossier coverage", m.dossier_coverage, f"{m.dossiers_with_backing}/{m.dossiers_count} dossiers carry backing claim IDs")}
+  {_meter("Draft coverage", m.draft_coverage, f"{m.drafts_with_backing}/{m.drafts_count} drafts carry backing claim IDs")}
 </div>
-<div class="score-row">
-  <div class="score">
-    <div class="label">HITL coverage</div>
-    <div class="value {_score_band(metrics.hitl_coverage)}">
-      {_pct(metrics.hitl_coverage)}
-    </div>
-    <div class="detail">
-      {metrics.drafts_decided}/{metrics.drafts_count} drafts decided
-      by an identified reviewer
-    </div>
-  </div>
-  <div class="score">
-    <div class="label">Reviewers</div>
-    <div class="value">{len(metrics.reviewers)}</div>
-    <div class="detail">distinct identities recorded</div>
-  </div>
-  <div class="score">
-    <div class="label">Decisions logged</div>
-    <div class="value">{sum(metrics.decisions_by_type.values())}</div>
-    <div class="detail">across all artifact references</div>
-  </div>
-  <div class="score">
-    <div class="label">Time to approval</div>
-    <div class="value">{html.escape(ttap_str)}</div>
-    <div class="detail">first request to last decision</div>
-  </div>
+<h3>Per-draft provenance and decision · {m.citations_count} primary sources consulted</h3>
+<div class="scroll"><table>
+<thead><tr><th>Draft</th><th class="n">Backing claims</th><th class="n">Sources</th><th>Decision</th><th>Reviewer</th><th>Decided</th></tr></thead>
+<tbody>{draft_rows}</tbody>
+</table></div>
+</section>
+
+<section>
+<h2><span class="art">Art. 14</span>Human oversight</h2>
+<p class="lede">EU AI Act Article 14 requires that high-risk AI systems be designed and developed in such a
+way that they can be effectively overseen by natural persons. For outreach automation, this means that no
+communication leaves the system without an identifiable human decision.</p>
+<div class="tiles">
+  {_tile("HITL coverage", _pct(m.hitl_coverage), f"{m.drafts_decided}/{m.drafts_count} drafts decided by an identified reviewer")}
+  {_tile("Reviewers", str(len(m.reviewers)), "distinct identities recorded")}
+  {_tile("Decisions logged", str(sum(m.decisions_by_type.values())), "across all artifact references")}
+  {_tile("Time to approval", _fmt_duration(m.time_to_approval_seconds), "first request to last decision")}
 </div>
-
-<h3 style="font-size:13px;margin-top:24px;font-family:ui-monospace,monospace;
-           text-transform:uppercase;letter-spacing:0.08em;
-           color:var(--ink-dim);">Decision distribution</h3>
-<ul>{decisions_html}</ul>
-
-<h3 style="font-size:13px;margin-top:16px;font-family:ui-monospace,monospace;
-           text-transform:uppercase;letter-spacing:0.08em;
-           color:var(--ink-dim);">Identified reviewers</h3>
-<ul>{reviewers_html}</ul>
-
-<div class="footer">
-  Generated from <code>{html.escape(metrics.run_id)}.jsonl</code>.
-  All metrics derive from the run's audit trail. The underlying
-  JSONL is the canonical record; this HTML is a rendered view.
+<div class="two">
+  <div><h3>Decision distribution</h3><ul class="chips">{decisions_html}</ul></div>
+  <div><h3>Identified reviewers</h3><ul class="plain">{reviewers_html}</ul></div>
 </div>
+<p class="limit">Coverage counts every draft <em>role</em> that received a decision: two drafts for the
+same role share one approval key, so 100% means every role was decided, not every recipient
+individually reviewed.</p>
+</section>
+
+<footer>Generated from <code>{esc(m.run_id)}.jsonl</code>. All metrics derive from the run's audit trail.
+The underlying JSONL is the canonical record; this HTML is a rendered view.</footer>
 
 </div></body></html>
 """
@@ -585,12 +633,12 @@ def render_html(metrics: RunMetrics) -> str:
 # ---------------------------------------------------------------------------
 
 def generate_for_run(
-    jsonl_path: Path, output_path: Path,
+    jsonl_path: Path, output_path: Path, generated_at: str | None = None,
 ) -> Path:
     """
     Compute metrics and write the HTML report. Returns the output path.
     """
     metrics = compute_metrics(jsonl_path)
-    html_text = render_html(metrics)
-    Path(output_path).write_text(html_text, encoding="utf-8")
+    html_text = render_html(metrics, generated_at=generated_at)
+    Path(output_path).write_text(html_text, encoding="utf-8", newline="\n")
     return Path(output_path)

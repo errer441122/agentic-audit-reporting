@@ -53,7 +53,7 @@ def _state(run_id: str) -> dict:
     return {
         "run_id": run_id,
         "target_account": {
-            "legal_name": "Intesa Sanpaolo",
+            "legal_name": "Example Bank S.p.A.",
             "country": "IT",
         },
         "supervisor_phase": "approved",
@@ -103,14 +103,14 @@ def main() -> int:
             ApprovalRecord(
                 artifact_ref=artifact_ref_for_draft(run_id, role),
                 decision=Decision.APPROVED,
-                decided_by="alice@firm.eu",
+                decided_by="alice@example.com",
                 decided_at="2026-05-16T10:00:02+00:00",
                 rationale="fixture approval",
             ),
         )
 
     metrics = compute_metrics(run_jsonl)
-    assert metrics.target_name == "Intesa Sanpaolo"
+    assert metrics.target_name == "Example Bank S.p.A."
     assert metrics.final_phase == "approved"
     assert metrics.snapshots_count == 1
     assert metrics.approval_records_count == 2
@@ -119,7 +119,7 @@ def main() -> int:
     assert metrics.dossier_coverage == 1.0
     assert metrics.draft_coverage == 1.0
     assert metrics.hitl_coverage == 1.0
-    assert metrics.reviewers == ("alice@firm.eu",)
+    assert metrics.reviewers == ("alice@example.com",)
     assert metrics.decisions_by_type == {"approved": 2}
     assert metrics.chain_status.valid is True
     assert metrics.chain_status.chain_present is True
@@ -127,15 +127,21 @@ def main() -> int:
     html = render_html(metrics)
     assert html.startswith("<!doctype html>")
     assert run_id in html
-    assert "Intesa Sanpaolo" in html
+    assert "Example Bank S.p.A." in html
     assert "Art. 12" in html
     assert "Art. 13" in html
     assert "Art. 14" in html
     assert "100.0%" in html
-    assert "alice@firm.eu" in html
+    assert "alice@example.com" in html
     assert "not a legal opinion" in html
     assert "Chain verified" in html
     assert "Chain not present" not in html
+    # Evidence per draft, and the head hash printed for external anchoring.
+    assert [d.citations for d in metrics.draft_rows] == [1, 1]
+    assert "Economic buyer" in html and "Legal compliance" in html
+    assert metrics.chain_status.head_hash and metrics.chain_status.head_hash in html
+    pinned = "2026-05-16T11:10:00+00:00"
+    assert render_html(metrics, generated_at=pinned) == render_html(metrics, generated_at=pinned)
 
     out_path = generate_for_run(run_jsonl, store_dir / "report.html")
     assert out_path.exists()

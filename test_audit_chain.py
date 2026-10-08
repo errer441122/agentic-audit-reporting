@@ -197,6 +197,41 @@ def main() -> int:
     )
     assert css == "score-poor"
 
+    # =====================================================
+    # G. Tail truncation needs an externally recorded head
+    # =====================================================
+    _section("G. Tail truncation vs recorded head")
+    tail = tmp / "tail.jsonl"
+    for n in range(3):
+        head = append_chained(tail, {"kind": "ev", "n": n})
+    assert verify_chain(tail).head_hash == head
+    lines = tail.read_text(encoding="utf-8").splitlines()
+    tail.write_text("\n".join(lines[:-1]) + "\n", encoding="utf-8")
+    # A shorter chain is still internally consistent...
+    assert verify_chain(tail).valid is True
+    # ...but no longer ends at the head recorded outside the file.
+    res = verify_chain(tail, expected_head=head)
+    print(f"  truncated: valid={res.valid} reason={res.reason[:50]}…")
+    assert res.valid is False and "head mismatch" in res.reason
+    label, _, expl = _chain_summary(res)
+    assert label == "Chain broken" and "line None" not in expl
+
+    # =====================================================
+    # H. Appending onto a corrupt last line is refused
+    # =====================================================
+    _section("H. Append onto corrupt last line")
+    torn = tmp / "torn.jsonl"
+    append_chained(torn, {"kind": "ev", "n": 0})
+    with torn.open("a", encoding="utf-8") as fh:
+        fh.write('{"kind": "ev", "n": 1, "prev_ha\n')  # truncated write
+    try:
+        append_chained(torn, {"kind": "ev", "n": 2})
+    except ValueError as exc:
+        print(f"  refused: {str(exc)[:60]}…")
+        assert "not valid JSON" in str(exc)
+    else:
+        raise AssertionError("append_chained must refuse a corrupt tail")
+
     print("\nAll audit-chain assertions passed.")
     return 0
 

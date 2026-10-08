@@ -11,6 +11,7 @@ regulated agentic workflows.
 > - **Open:** the live report below, then `compliance_report.py`.
 
 **[Open the live compliance report](https://errer441122.github.io/agentic-audit-reporting/abm_compliance_report.html)**
+(sample run: the bank, reviewers and timings are fictional).
 
 This repository is intentionally scoped to the integrity and reporting
 layer. It does not ship the full ABM agent pipeline, reviewer UI,
@@ -104,13 +105,13 @@ append_notification_attempt(
         "run_id": run_id,
     },
 )
-append_approval_record(
+head = append_approval_record(  # every append returns the new head hash
     store_dir,
     run_id,
     {
         "artifact_ref": artifact_ref_for_draft(run_id, "legal_compliance"),
         "decision": "approved",
-        "decided_by": "alice@firm.eu",
+        "decided_by": "reviewer@example.com",
         "decided_at": "2026-05-16T10:00:02+00:00",
         "rationale": "ok",
     },
@@ -123,7 +124,15 @@ generate_for_run(
 ```
 
 Open `abm_compliance_report.html` and the Article 12 hash-chain box
-should read `Chain verified`.
+should read `Chain verified`, next to the head hash. Keep the head
+somewhere the writer cannot change (a ticket, an email, the CRM) and
+verify against it later:
+
+```python
+from audit_logger import verify_chain
+
+assert verify_chain(store_dir / f"{run_id}.jsonl", expected_head=head).valid
+```
 
 To regenerate the committed sample report from the chained write path:
 
@@ -140,9 +149,15 @@ the previous entry's `entry_hash`.
 `verify_chain()` detects:
 
 - edits to an existing entry,
-- entry deletion or reordering,
+- deletion, insertion or reordering of entries,
 - malformed JSON lines,
-- legacy/plain JSONL files that have no chain metadata.
+- legacy/plain JSONL files that have no chain metadata,
+- a missing tail, **only** when the head hash recorded elsewhere is
+  passed as `expected_head`: a file cut after its last good entry is
+  still a valid, shorter chain on its own.
+
+`append_chained()` refuses to write after a corrupt last line instead of
+chaining a fresh, valid-looking entry onto a broken file.
 
 Legacy/plain JSONL is reported as `Chain not present`. That is distinct
 from `Chain broken`: no tamper evidence exists, but no broken chain is

@@ -89,7 +89,7 @@ def main() -> int:
         ApprovalRecord(
             artifact_ref=f"draft:{run_id}:legal_compliance",
             decision=Decision.APPROVED,
-            decided_by="alice@firm.eu",
+            decided_by="alice@example.com",
             decided_at="2026-05-16T10:00:02+00:00",
             rationale="ok",
         ),

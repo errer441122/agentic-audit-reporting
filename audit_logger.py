@@ -29,9 +29,13 @@ fields to every line:
 - "entry_hash" : SHA-256 of the current entry's canonical JSON
                  INCLUDING prev_hash but EXCLUDING entry_hash
 
-This means: changing any field of any entry, OR removing/reordering
-any entry, OR inserting a new entry between existing ones, all
-produce a chain that fails verification.
+This means: changing any field of any entry, removing or reordering
+an entry, or inserting one between existing entries all produce a
+chain that fails verification. Removing entries from the END does
+not: a truncated file is still a valid, shorter chain. Catching that
+needs the head hash recorded somewhere else (state, a ticket, an
+email): verify_chain(path, expected_head=...) compares against it,
+and the compliance report prints the head so it can be recorded.
 
 We deliberately use SHA-256 (not Merkle trees, not signatures).
 SHA-256 is enough for tamper-evidence in a single-writer system;
@@ -219,7 +223,16 @@ def append_chained(path: Path, entry: dict) -> str:
                 encoding="utf-8"
             ).splitlines()[::-1]:
                 if raw.strip():
-                    prev_entry = json.loads(raw)
+                    try:
+                        prev_entry = json.loads(raw)
+                    except json.JSONDecodeError as exc:
+                        # Chaining onto a corrupt line would hide the
+                        # damage behind a fresh, valid-looking link.
+                        raise ValueError(
+                            f"cannot append to {path}: its last line is "
+                            f"not valid JSON ({exc.msg}); the audit file "
+                            "is already broken"
+                        ) from exc
                     prev_hash = prev_entry.get(
                         "entry_hash", GENESIS_HASH
                     )
@@ -270,9 +283,12 @@ class VerificationResult:
     first_bad_line: int | None = None
     reason: str = ""
     chain_present: bool = True
+    head_hash: str = ""   # entry_hash of the last line of a valid chain
 
 
-def verify_chain(path: Path) -> VerificationResult:
+def verify_chain(
+    path: Path, expected_head: str | None = None
+) -> VerificationResult:
     """
     Walk the chain. Report the first inconsistency.
 
@@ -293,6 +309,11 @@ def verify_chain(path: Path) -> VerificationResult:
     file is corrupt. That is checked first — before the "no chain
     metadata" and prev_hash/entry_hash checks — and reported as
     valid=False (a corrupt file is broken, full stop).
+
+    expected_head: the head hash recorded outside the file (e.g. the
+    value append_chained() returned last). When given, a file whose
+    chain is internally consistent but ends elsewhere — truncated, or
+    extended after the head was recorded — is reported as invalid.
     """
     entries = read_chain(path)
 
@@ -312,6 +333,14 @@ def verify_chain(path: Path) -> VerificationResult:
             )
 
     if entries and not any("entry_hash" in e.payload for e in entries):
+        if expected_head is not None:
+            return VerificationResult(
+                valid=False,
+                entries_checked=len(entries),
+                reason="a head hash was expected but the file carries "
+                       "no hash-chain metadata",
+                chain_present=False,
+            )
         return VerificationResult(
             valid=True,
             entries_checked=len(entries),
@@ -349,9 +378,23 @@ def verify_chain(path: Path) -> VerificationResult:
             )
         expected_prev = entry.entry_hash
 
+    head = entries[-1].entry_hash if entries else ""
+    if expected_head is not None and head != expected_head:
+        return VerificationResult(
+            valid=False,
+            entries_checked=len(entries),
+            reason=(
+                f"head mismatch: the file ends at {head[:16] or 'nothing'}…, "
+                f"the recorded head is {expected_head[:16]}… (entries "
+                "removed from the end, or added after the head was "
+                "recorded)"
+            ),
+            head_hash=head,
+        )
     return VerificationResult(
         valid=True,
         entries_checked=len(entries),
+        head_hash=head,
     )
 
 
