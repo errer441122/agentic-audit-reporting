@@ -171,3 +171,10 @@ and real notification adapters are out of scope here.
 
 Keeping this archive narrow makes the portfolio signal cleaner: clone it,
 run the tests, inspect the generated report, and verify the hash chain.
+
+## How I built this
+
+Built with AI coding assistants as a pair programmer: they drafted most of the
+code and docs. My part: choosing the business question and the data, defining
+the rules and metrics, checking results against the source data and deciding
+what to report, including what did not work.
